@@ -2,197 +2,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cloud Contact Saver</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-      background-color: #f0f2f5;
-    }
-    input, button, select {
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    .contact-item {
-      background: #fff;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Hub</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
 </head>
 <body>
-
-  <h1>Cloud Contact Saver</h1>
-
-  <div id="form">
-    <input type="text" id="name" placeholder="Name" required><br>
-    <div id="phones">
-      <div>
-        <input type="tel" placeholder="Phone Number" required>
-        <button onclick="removePhone(this)">Remove</button>
-      </div>
+<div class="container my-5">
+    <h1 class="mb-4">Contact Hub</h1>
+    <div class="mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search contacts..." oninput="searchContacts()">
     </div>
-    <button onclick="addPhone()">Add More Phone</button><br><br>
+    <form id="contactForm" class="mb-4">
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <input type="text" id="name" class="form-control" placeholder="Name" required>
+            </div>
+            <div class="col-md-6">
+                <input type="text" id="phone" class="form-control" placeholder="Phone Number" required>
+            </div>
+            <div class="col-md-6">
+                <input type="text" id="department" class="form-control" placeholder="Department">
+            </div>
+            <div class="col-md-6">
+                <input type="text" id="office" class="form-control" placeholder="Office">
+            </div>
+            <div class="col-md-6">
+                <input type="text" id="category" class="form-control" placeholder="Category">
+            </div>
+            <div class="col-md-6">
+                <input type="text" id="otherPhones" class="form-control" placeholder="Other Phone Numbers (comma separated)">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Contact</button>
+    </form>
+    <button class="btn btn-success mb-3" onclick="exportContacts()">Export as VCF</button>
+    <div id="contactsList" class="list-group"></div>
+</div>
 
-    <input type="text" id="department" placeholder="Department (optional)"><br>
-    <input type="text" id="office" placeholder="Office (optional)"><br>
-    <input type="text" id="category" placeholder="Category (optional)"><br><br>
-
-    <button onclick="saveContact()">Save Contact</button>
-  </div>
-
-  <div>
-    <input type="text" id="search" placeholder="Search contacts..." oninput="loadContacts()">
-  </div>
-
-  <h2>All Contacts</h2>
-  <div id="contact-list"></div>
-
-  <button onclick="exportVCF()">Export as VCF</button>
-
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <script>
-  // Your Firebase Config
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyC-G9wJCjhWC9ydNntYf97ZKvrL-GJ4kZY",
+    authDomain: "contact-hub-e4a1e.firebaseapp.com",
+    databaseURL: "https://contact-hub-e4a1e-default-rtdb.firebaseio.com",
+    projectId: "contact-hub-e4a1e",
+    storageBucket: "contact-hub-e4a1e.appspot.com",
+    messagingSenderId: "637060074287",
+    appId: "1:637060074287:web:a2579ff50fb841ca09efda",
+    measurementId: "G-NYT6WHL5QF"
   };
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  function addPhone() {
-    const phonesDiv = document.getElementById('phones');
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <input type="tel" placeholder="Phone Number" required>
-      <button onclick="removePhone(this)">Remove</button>
-    `;
-    phonesDiv.appendChild(div);
-  }
+  const contactForm = document.getElementById('contactForm');
+  const contactsList = document.getElementById('contactsList');
+  const searchInput = document.getElementById('searchInput');
 
-  function removePhone(btn) {
-    btn.parentElement.remove();
-  }
-
-  function getPhones() {
-    const inputs = document.querySelectorAll('#phones input');
-    return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
-  }
-
-  function saveContact() {
+  contactForm.addEventListener('submit', function(e) {
+    e.preventDefault();
     const name = document.getElementById('name').value.trim();
-    const phones = getPhones();
+    const phone = document.getElementById('phone').value.trim();
     const department = document.getElementById('department').value.trim();
     const office = document.getElementById('office').value.trim();
     const category = document.getElementById('category').value.trim();
+    const otherPhones = document.getElementById('otherPhones').value.trim();
 
-    if (!name || phones.length === 0) {
-      alert("Name and at least one phone number are required.");
-      return;
+    if (name && phone) {
+      const contactRef = db.ref('contacts').push();
+      contactRef.set({
+        name,
+        phone,
+        department,
+        office,
+        category,
+        otherPhones: otherPhones ? otherPhones.split(",").map(p => p.trim()) : []
+      });
+      contactForm.reset();
     }
+  });
 
-    const newContact = {
-      name,
-      phones,
-      department,
-      office,
-      category
-    };
-
-    db.ref('contacts').push(newContact).then(() => {
-      alert("Contact saved!");
-      document.getElementById('form').reset();
-      document.getElementById('phones').innerHTML = `
-        <div>
-          <input type="tel" placeholder="Phone Number" required>
-          <button onclick="removePhone(this)">Remove</button>
-        </div>
-      `;
-      loadContacts();
+  db.ref('contacts').on('value', function(snapshot) {
+    contactsList.innerHTML = '';
+    const contacts = [];
+    snapshot.forEach(function(childSnapshot) {
+      const contact = childSnapshot.val();
+      contacts.push(contact);
     });
-  }
 
-  function loadContacts() {
-    const list = document.getElementById('contact-list');
-    const search = document.getElementById('search').value.toLowerCase();
-    list.innerHTML = '';
+    contacts.sort((a, b) => a.name.localeCompare(b.name));
 
-    db.ref('contacts').once('value', snapshot => {
-      const data = snapshot.val();
-      if (data) {
-        const entries = Object.entries(data);
-        entries.forEach(([id, contact]) => {
-          if (contact.name.toLowerCase().includes(search) || contact.phones.join(',').includes(search)) {
-            const div = document.createElement('div');
-            div.className = 'contact-item';
-            div.innerHTML = `
-              <strong>${contact.name}</strong><br>
-              Phones: ${contact.phones.join(', ')}<br>
-              ${contact.department ? `Department: ${contact.department}<br>` : ''}
-              ${contact.office ? `Office: ${contact.office}<br>` : ''}
-              ${contact.category ? `Category: ${contact.category}<br>` : ''}
-            `;
-            list.appendChild(div);
-          }
-        });
-      } else {
-        list.innerHTML = 'No contacts found.';
-      }
+    contacts.forEach(function(contact) {
+      const div = document.createElement('div');
+      div.className = 'list-group-item';
+      div.textContent = contact.name + " - " + contact.phone;
+      contactsList.appendChild(div);
     });
-  }
+  });
 
-  function exportVCF() {
-    db.ref('contacts').once('value', snapshot => {
-      const data = snapshot.val();
-      if (!data) {
-        alert('No contacts to export.');
-        return;
-      }
-      let vcfData = '';
-      Object.values(data).forEach(contact => {
-        vcfData += `BEGIN:VCARD
+  function exportContacts() {
+    db.ref('contacts').once('value', function(snapshot) {
+      let vcfContent = "";
+      snapshot.forEach(function(childSnapshot) {
+        const contact = childSnapshot.val();
+        vcfContent += "BEGIN:VCARD
 VERSION:3.0
-FN:${contact.name}
-`;
-        contact.phones.forEach(phone => {
-          vcfData += `TEL;TYPE=CELL:${phone}
-`;
-        });
-        let note = '';
-        if (contact.department) note += `Department: ${contact.department} `;
-        if (contact.office) note += `Office: ${contact.office} `;
-        if (contact.category) note += `Category: ${contact.category} `;
-        if (note.trim()) vcfData += `NOTE:${note.trim()}
-`;
-        vcfData += `END:VCARD
-`;
+";
+        vcfContent += "FN:" + contact.name + "
+";
+        vcfContent += "TEL:" + contact.phone + "
+";
+        if (contact.otherPhones) {
+          contact.otherPhones.forEach(function(otherPhone) {
+            vcfContent += "TEL:" + otherPhone + "
+";
+          });
+        }
+        vcfContent += "ORG:" + contact.department + "
+";
+        vcfContent += "TITLE:" + contact.office + "
+";
+        vcfContent += "NOTE:" + contact.category + "
+";
+        vcfContent += "END:VCARD
+";
       });
 
-      const blob = new Blob([vcfData], { type: 'text/vcard' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'contacts.vcf';
-      a.click();
-      URL.revokeObjectURL(url);
+      const blob = new Blob([vcfContent], { type: 'text/vcard' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = "contacts.vcf";
+      link.click();
     });
   }
 
-  // Load contacts on start
-  loadContacts();
+  function searchContacts() {
+    const filter = searchInput.value.toLowerCase();
+    const contacts = contactsList.getElementsByClassName('list-group-item');
+    for (let i = 0; i < contacts.length; i++) {
+      const contact = contacts[i];
+      const txtValue = contact.textContent || contact.innerText;
+      contact.style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+    }
+  }
 </script>
-
 </body>
 </html>
