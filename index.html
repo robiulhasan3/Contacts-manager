@@ -58,16 +58,28 @@
   <button onclick="exportVCF()">Export as VCF</button>
 
 <script>
-  // Your Firebase Config
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyC-G9wJCjhWC9ydNntYf97ZKvrL-GJ4kZY",
+  authDomain: "contact-hub-e4a1e.firebaseapp.com",
+  databaseURL: "https://contact-hub-e4a1e-default-rtdb.firebaseio.com",
+  projectId: "contact-hub-e4a1e",
+  storageBucket: "contact-hub-e4a1e.firebasestorage.app",
+  messagingSenderId: "637060074287",
+  appId: "1:637060074287:web:a2579ff50fb841ca09efda",
+  measurementId: "G-NYT6WHL5QF"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
