@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,14 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Hub</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #f0f8ff;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            max-width: 900px;
+            margin-top: 40px;
+        }
+
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        .btn {
+            font-weight: bold;
+        }
+
+        #searchInput {
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+        }
+
+        .form-control {
+            border-radius: 5px;
+        }
+
+        .contact-form {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-form input {
+            margin-bottom: 10px;
+        }
+
+        .contact-card {
+            background: #e3f2fd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .contact-card p {
+            margin: 5px 0;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            border: none;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .mb-3 {
+            margin-bottom: 1.5rem;
+        }
+    </style>
 </head>
 <body>
-<div class="container my-5">
-    <h1 class="mb-4">Contact Hub</h1>
+<div class="container">
+    <h1>Contact Hub</h1>
+
     <div class="mb-3">
         <input type="text" id="searchInput" class="form-control" placeholder="Search contacts..." oninput="searchContacts()">
     </div>
-    <form id="contactForm" class="mb-4">
+
+    <form id="contactForm" class="contact-form">
         <div class="row g-2 mb-3">
             <div class="col-md-6">
                 <input type="text" id="name" class="form-control" placeholder="Name" required>
@@ -36,6 +118,7 @@
         </div>
         <button type="submit" class="btn btn-primary">Save Contact</button>
     </form>
+
     <button class="btn btn-success mb-3" onclick="exportContacts()">Export as VCF</button>
     <div id="contactsList" class="list-group"></div>
 </div>
@@ -96,8 +179,14 @@
 
     contacts.forEach(function(contact) {
       const div = document.createElement('div');
-      div.className = 'list-group-item';
-      div.textContent = contact.name + " - " + contact.phone;
+      div.className = 'contact-card';
+      div.innerHTML = `
+        <h5>${contact.name}</h5>
+        <p><strong>Phone:</strong> ${contact.phone}</p>
+        <p><strong>Department:</strong> ${contact.department}</p>
+        <p><strong>Office:</strong> ${contact.office}</p>
+        <p><strong>Category:</strong> ${contact.category}</p>
+      `;
       contactsList.appendChild(div);
     });
   });
@@ -107,27 +196,18 @@
       let vcfContent = "";
       snapshot.forEach(function(childSnapshot) {
         const contact = childSnapshot.val();
-        vcfContent += "BEGIN:VCARD
-VERSION:3.0
-";
-        vcfContent += "FN:" + contact.name + "
-";
-        vcfContent += "TEL:" + contact.phone + "
-";
+        vcfContent += "BEGIN:VCARD\nVERSION:3.0\n";
+        vcfContent += "FN:" + contact.name + "\n";
+        vcfContent += "TEL:" + contact.phone + "\n";
         if (contact.otherPhones) {
           contact.otherPhones.forEach(function(otherPhone) {
-            vcfContent += "TEL:" + otherPhone + "
-";
+            vcfContent += "TEL:" + otherPhone + "\n";
           });
         }
-        vcfContent += "ORG:" + contact.department + "
-";
-        vcfContent += "TITLE:" + contact.office + "
-";
-        vcfContent += "NOTE:" + contact.category + "
-";
-        vcfContent += "END:VCARD
-";
+        vcfContent += "ORG:" + contact.department + "\n";
+        vcfContent += "TITLE:" + contact.office + "\n";
+        vcfContent += "NOTE:" + contact.category + "\n";
+        vcfContent += "END:VCARD\n";
       });
 
       const blob = new Blob([vcfContent], { type: 'text/vcard' });
@@ -140,7 +220,7 @@ VERSION:3.0
 
   function searchContacts() {
     const filter = searchInput.value.toLowerCase();
-    const contacts = contactsList.getElementsByClassName('list-group-item');
+    const contacts = contactsList.getElementsByClassName('contact-card');
     for (let i = 0; i < contacts.length; i++) {
       const contact = contacts[i];
       const txtValue = contact.textContent || contact.innerText;
